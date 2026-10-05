@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gia Sư AI - Nâng Cao Tự Học</title>
+    
+    <!-- Tailwind CSS cho Giao diện -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome cho Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Marked.js để render Markdown từ AI -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #f8fafc; /* Xanh lam nhạt */
+            background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%233b82f6" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .chat-bubble {
+            animation: fadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Markdown Styles trong Chat */
+        .markdown-body p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .markdown-body strong { color: #2563eb; font-weight: 700; }
+        .markdown-body ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body code { background-color: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 0.375rem; font-family: monospace; color: #db2777; }
+        
+        .subject-btn.active {
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+            transform: translateY(-4px);
+            border-color: #3b82f6;
+        }
+        
+        .glass-header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-gray-800">
+
+    <!-- Header -->
+    <header class="glass-header shadow-sm z-20 p-3 md:p-4 flex justify-between items-center relative border-b border-gray-100">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-2 rounded-2xl w-12 h-12 md:w-14 md:h-14 flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
+                <i class="fa-solid fa-robot text-2xl md:text-3xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-3xl font-bold text-gray-800 tracking-tight">Gia Sư <span class="text-blue-600">AI</span></h1>
+                <p class="text-xs md:text-sm text-indigo-500 font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-star text-yellow-400"></i> Cùng em vươn xa
+                </p>
+            </div>
+        </div>
+        
+        <button id="settingsBtn" class="text-gray-400 hover:text-indigo-600 transition p-2 md:p-3 rounded-full hover:bg-indigo-50" title="Cài đặt API">
+            <i class="fa-solid fa-gear text-xl md:text-2xl"></i>
+        </button>
+    </header>
+
+    <!-- Khung nhập API Key -->
+    <div id="settingsPanel" class="hidden absolute top-20 right-4 bg-white p-5 rounded-2xl shadow-2xl z-50 w-80 md:w-96 border border-gray-100 transform origin-top-right transition-all">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+                <i class="fa-solid fa-key text-blue-500"></i> Cài đặt Hệ thống
+            </h3>
+            <button id="closeSettingsBtn" class="text-gray-400 hover:text-red-500">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <p class="text-sm text-gray-600 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+            Dành cho Phụ huynh/Giáo viên: Nhập API Key Google Gemini để kích hoạt Gia sư. Dữ liệu được lưu trên trình duyệt của bạn.
+        </p>
+        <input type="password" id="apiKeyInput" placeholder="Nhập Google Gemini API Key..." class="w-full text-base p-3 border border-gray-300 rounded-xl mb-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+        <button id="saveApiBtn" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 rounded-xl text-base font-bold hover:shadow-lg transform hover:-translate-y-0.5 transition">Lưu Cài Đặt</button>
+    </div>
+
+    <!-- Khu vực chọn môn học -->
+    <div class="bg-white p-3 md:p-4 flex justify-start md:justify-center gap-3 border-b border-gray-100 overflow-x-auto shrink-0 z-10 shadow-sm hide-scrollbar">
+        <button class="subject-btn active flex flex-col items-center p-3 md:px-6 rounded-2xl bg-white border-2 border-transparent transition-all hover:bg-blue-50 min-w-[90px]" data-subject="Toán">
+            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+                <i class="fa-solid fa-calculator text-blue-600 text-2xl"></i>
+            </div>
+            <span class="text-sm font-bold text-gray-700">Toán</span>
+        </button>
+        
+        <button class="subject-btn flex flex-col items-center p-3 md:px-6 rounded-2xl bg-white border-2 border-transparent transition-all hover:bg-green-50 min-w-[90px]" data-subject="Tiếng Việt">
+            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                <i class="fa-solid fa-book-open text-green-600 text-2xl"></i>
+            </div>
+            <span class="text-sm font-bold text-gray-700">Tiếng Việt</span>
+        </button>
+        
+        <button class="subject-btn flex flex-col items-center p-3 md:px-6 rounded-2xl bg-white border-2 border-transparent transition-all hover:bg-purple-50 min-w-[90px]" data-subject="Tiếng Anh">
+            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                <i class="fa-solid fa-language text-purple-600 text-2xl"></i>
+            </div>
+            <span class="text-sm font-bold text-gray-700">Tiếng Anh</span>
+        </button>
+        
+        <button class="subject-btn flex flex-col items-center p-3 md:px-6 rounded-2xl bg-white border-2 border-transparent transition-all hover:bg-yellow-50 min-w-[90px]" data-subject="Khoa học">
+            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-2">
+                <i class="fa-solid fa-flask text-yellow-600 text-2xl"></i>
+            </div>
+            <span class="text-sm font-bold text-gray-700">Khoa học</span>
+        </button>
+    </div>
+
+    <!-- Main Chat Area -->
+    <main id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-5 scroll-smooth">
+        <!-- Lời chào mặc định -->
+        <div class="flex gap-3 md:gap-4 chat-bubble mr-auto max-w-[95%] md:max-w-[80%]">
+            <div class="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0 shadow-md">
+                <i class="fa-solid fa-robot text-white text-lg md:text-xl"></i>
+            </div>
+            <div class="bg-white p-4 md:p-5 rounded-3xl rounded-tl-none shadow-sm border border-gray-100">
+                <p class="text-gray-800 font-bold mb-2 text-lg md:text-xl flex items-center gap-2">
+                    Chào em! 👋
+                </p>
+                <p class="text-gray-600 text-base md:text-lg markdown-body">
+                    Thầy/Cô là Gia sư AI. Hôm nay em muốn ôn tập bài gì nào? <br>
+                    Em có thể <b>nhập câu hỏi</b>, <b>chụp ảnh bài tập</b> hoặc <b>bấm nút Micro</b> để nói chuyện với Thầy/Cô nhé!
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <div class="bg-white p-3 md:p-5 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-10 shrink-0 border-t border-gray-100 relative">
+        
+        <!-- Nút gỡ lỗi / Clear chat (Ẩn) -->
+        <button id="clearChatBtn" class="absolute -top-10 right-4 bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs hover:bg-gray-300 shadow-sm opacity-50 hover:opacity-100 transition">
+            <i class="fa-solid fa-trash-can"></i> Xóa hội thoại
+        </button>
+
+        <!-- Image Preview Container -->
+        <div id="imagePreviewContainer" class="hidden mb-3 relative inline-block mx-auto w-full max-w-4xl px-2">
+            <div class="relative inline-block">
+                <img id="imagePreview" src="" alt="Preview" class="h-24 md:h-32 rounded-xl border-2 border-indigo-200 shadow-md object-cover">
+                <button id="removeImageBtn" class="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg transform hover:scale-110 transition">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="max-w-4xl mx-auto flex items-end gap-2 md:gap-3">
+            <!-- Nút tải ảnh -->
+            <label for="imageUpload" class="cursor-pointer text-indigo-500 hover:text-white p-3 md:p-4 rounded-2xl hover:bg-indigo-500 transition shrink-0 bg-indigo-50 border border-indigo-100 shadow-sm" title="Tải ảnh bài tập">
+                <i class="fa-solid fa-image text-xl md:text-2xl"></i>
+                <input type="file" id="imageUpload" accept="image/*" class="hidden">
+            </label>
+
+            <!-- Nút Voice (Mic) -->
+            <button id="micBtn" class="text-rose-500 hover:text-white p-3 md:p-4 rounded-2xl hover:bg-rose-500 transition shrink-0 bg-rose-50 border border-rose-100 shadow-sm relative" title="Nhập bằng giọng nói">
+                <i class="fa-solid fa-microphone text-xl md:text-2xl"></i>
+                <span id="micPulse" class="hidden absolute inset-0 bg-rose-400 rounded-2xl opacity-40 animate-ping"></span>
+            </button>
+
+            <!-- Ô nhập Text -->
+            <div class="flex-1 relative">
+                <textarea id="messageInput" rows="1" placeholder="Nhập câu hỏi của em vào đây..." class="w-full bg-gray-50 border-2 border-gray-200 rounded-3xl py-3 px-5 pr-12 focus:outline-none focus:border-indigo-400 focus:bg-white resize-none overflow-hidden text-base md:text-lg leading-relaxed shadow-inner transition-colors"></textarea>
+            </div>
+
+            <!-- Nút Gửi -->
+            <button id="sendBtn" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white p-3 md:px-6 rounded-3xl transition shadow-md shrink-0 flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed h-full min-h-[50px] md:min-h-[56px]">
+                <span class="hidden md:inline font-bold text-lg">Gửi</span>
+                <i class="fa-solid fa-paper-plane text-xl group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+            </button>
+        </div>
+        <div class="text-center mt-3 flex justify-center items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-green-500 text-xs"></i>
+            <p class="text-xs text-gray-500 font-medium">Gia sư AI chỉ gợi mở tư duy, không giải hộ bài tập.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. BIẾN TRẠNG THÁI (STATE) ---
+        let API_KEY = localStorage.getItem('gemini_api_key') || '';
+        let currentSubject = 'Toán';
+        let chatHistory = [];
+        let base64Image = null;
+        let isRecording = false;
+
+        // --- DOM Elements ---
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const removeImageBtn = document.getElementById('removeImageBtn');
+        const micBtn = document.getElementById('micBtn');
+        const micPulse = document.getElementById('micPulse');
+        const subjectBtns = document.querySelectorAll('.subject-btn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        
+        // UI Elements Cài đặt
+        const settingsBtn = document.getElementById('settingsBtn');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveApiBtn = document.getElementById('saveApiBtn');
+
+        // --- 2. CẤU HÌNH SƯ PHẠM (SYSTEM PROMPT) ---
+        function getSystemInstruction(subject) {
+            return `Bạn là một gia sư AI thân thiện, kiên nhẫn và chuyên nghiệp, chuyên hỗ trợ học sinh Tiểu học tại Việt Nam (độ tuổi 6-11).
+Bạn đang đóng vai trò là giáo viên môn: ${subject}.
+
+NGUYÊN TẮC SƯ PHẠM NGHIÊM NGẶT (KHÔNG ĐƯỢC VI PHẠM):
+1. KHÔNG BAO GIỜ đưa ra đáp án trực tiếp cho bài tập. Nhiệm vụ của bạn là hướng dẫn học sinh TỰ TÌM RA ĐÁP ÁN.
+2. Phương pháp: Đặt câu hỏi gợi mở, chia nhỏ bài toán/câu hỏi thành các bước nhỏ, hoặc gợi nhớ kiến thức cũ.
+3. Giọng điệu: Vui vẻ, ấm áp, khích lệ. Xưng hô "Thầy/Cô" và gọi người dùng là "em".
+4. Luôn khen ngợi: "Em làm rất tốt!", "Câu hỏi rất hay!", "Đúng rồi đó, tiếp theo là gì nhỉ?".
+5. Nếu bài tập phức tạp, hãy tạo ra một VÍ DỤ TƯƠNG TỰ (số liệu khác, tình huống khác) để giải thích cách làm, sau đó yêu cầu học sinh áp dụng vào bài của mình.
+6. Ngôn ngữ: Tiếng Việt chuẩn. Từ ngữ đơn giản, dễ hiểu với trẻ em. Trình bày ngắn gọn, xuống dòng rõ ràng, sử dụng emoji phù hợp để tạo hứng thú (😊, 🌟, 📚, 💡).
+7. Xử lý ảnh: Nếu học sinh gửi ảnh bài tập, hãy đọc hiểu nội dung ảnh, khen ngợi học sinh đã chụp ảnh rõ ràng, và bắt đầu hướng dẫn theo nguyên tắc số 1.
+8. Nếu học sinh hỏi sai môn học (ví dụ hỏi Toán khi đang ở môn Tiếng Việt), hãy nhẹ nhàng nhắc nhở và vẫn hướng dẫn gợi mở.`;
+        }
+
+        // --- 3. XỬ LÝ SỰ KIỆN UI CƠ BẢN ---
+        
+        if (API_KEY) apiKeyInput.value = API_KEY;
+
+        settingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.toggle('hidden');
+        });
+        
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.add('hidden');
+        });
+
+        saveApiBtn.addEventListener('click', () => {
+            const val = apiKeyInput.value.trim();
+            if (val) {
+                API_KEY = val;
+                localStorage.setItem('gemini_api_key', val);
+                settingsPanel.classList.add('hidden');
+                addSystemMessage("✅ Đã lưu cấu hình API thành công. Thầy/Cô AI đã sẵn sàng!");
+            } else {
+                alert("Vui lòng nhập API Key!");
+            }
+        });
+
+        // Tự động thay đổi chiều cao Textarea (tối đa 150px)
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            let newHeight = this.scrollHeight;
+            if (newHeight > 150) newHeight = 150;
+            this.style.height = newHeight + 'px';
+            if(this.value.trim() === '') this.style.height = 'auto';
+        });
+
+        // Đổi môn học
+        subjectBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                subjectBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSubject = btn.dataset.subject;
+                
+                chatHistory = []; 
+                addSystemMessage(`Thầy/Cô môn <b>${currentSubject}</b> đã sẵn sàng hỗ trợ em! 🌟`);
+                
+                // Thay đổi màu sắc placeholder theo môn
+                const colors = {
+                    'Toán': 'focus:border-blue-400',
+                    'Tiếng Việt': 'focus:border-green-400',
+                    'Tiếng Anh': 'focus:border-purple-400',
+                    'Khoa học': 'focus:border-yellow-400'
+                };
+                messageInput.className = `w-full bg-gray-50 border-2 border-gray-200 rounded-3xl py-3 px-5 pr-12 focus:outline-none focus:bg-white resize-none overflow-hidden text-base md:text-lg leading-relaxed shadow-inner transition-colors ${colors[currentSubject]}`;
+            });
+        });
+
+        clearChatBtn.addEventListener('click', () => {
+            if(confirm('Em có chắc muốn xóa cuộc trò chuyện này không?')) {
+                chatContainer.innerHTML = '';
+                chatHistory = [];
+                // Thêm lại lời chào
+                const div = document.createElement('div');
+                div.className = `flex gap-3 md:gap-4 chat-bubble mr-auto max-w-[95%] md:max-w-[80%]`;
+                div.innerHTML = `
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0 shadow-md">
+                        <i class="fa-solid fa-robot text-white text-lg md:text-xl"></i>
+                    </div>
+                    <div class="bg-white p-4 md:p-5 rounded-3xl rounded-tl-none shadow-sm border border-gray-100">
+                        <p class="text-gray-800 font-bold mb-2 text-lg md:text-xl">Chào em! 👋</p>
+                        <p class="text-gray-600 text-base md:text-lg">Chúng ta bắt đầu lại bài học mới nhé!</p>
+                    </div>
+                `;
+                chatContainer.appendChild(div);
+            }
+        });
+
+        // --- 4. XỬ LÝ HÌNH ẢNH VÀ GIỌNG NÓI ---
+
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if(file.size > 5 * 1024 * 1024) { 
+                    alert("Ảnh hơi lớn rồi, em nhờ người lớn chọn ảnh dưới 5MB nhé.");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    base64Image = event.target.result;
+                    imagePreview.src = base64Image;
+                    imagePreviewContainer.classList.remove('hidden');
+                    messageInput.focus();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        removeImageBtn.addEventListener('click', () => {
+            base64Image = null;
+            imageUpload.value = '';
+            imagePreviewContainer.classList.add('hidden');
+        });
+
+        // Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true; // Hiển thị kết quả tạm thời
+            recognition.lang = 'vi-VN';
+
+            recognition.onstart = function() {
+                isRecording = true;
+                micPulse.classList.remove('hidden');
+                micBtn.classList.remove('text-rose-500', 'bg-rose-50');
+                micBtn.classList.add('text-white', 'bg-rose-500');
+                messageInput.placeholder = "Thầy/Cô đang nghe em nói đây...";
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                
+                // Cập nhật textarea (có thể xử lý tốt hơn nhưng tạm thời nối chuỗi)
+                if(finalTranscript) {
+                    const currentVal = messageInput.value;
+                    messageInput.value = currentVal ? currentVal + ' ' + finalTranscript : finalTranscript;
+                    messageInput.dispatchEvent(new Event('input')); // auto resize
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Lỗi Mic:', event.error);
+                isRecording = false;
+                resetMicUI();
+                if(event.error === 'not-allowed') {
+                    alert('Em cần cho phép trang web sử dụng Micro nhé!');
+                }
+            };
+
+            recognition.onend = function() {
+                isRecording = false;
+                resetMicUI();
+            };
+
+            micBtn.addEventListener('click', () => {
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    messageInput.value = ''; // Clear trước khi thu âm mới cho tiện
+                    recognition.start();
+                }
+            });
+
+            function resetMicUI() {
+                micPulse.classList.add('hidden');
+                micBtn.classList.remove('text-white', 'bg-rose-500');
+                micBtn.classList.add('text-rose-500', 'bg-rose-50');
+                messageInput.placeholder = "Nhập câu hỏi của em vào đây...";
+            }
+        } else {
+            micBtn.style.display = 'none'; 
+            console.log("Trình duyệt không hỗ trợ Mic");
+        }
+
+        // --- 5. HIỂN THỊ VÀ API GEMINI ---
+
+        function addMessage(sender, text, imageSrc = null) {
+            const div = document.createElement('div');
+            div.className = `flex gap-3 md:gap-4 chat-bubble w-full ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            let avatar = sender === 'user' 
+                ? `<div class="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center shrink-0 shadow-md order-2"><i class="fa-solid fa-user-graduate text-white text-lg"></i></div>`
+                : `<div class="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0 shadow-md"><i class="fa-solid fa-robot text-white text-lg md:text-xl"></i></div>`;
+            
+            let bubbleClass = sender === 'user'
+                ? `bg-gradient-to-br from-teal-500 to-green-500 text-white p-4 md:p-5 rounded-3xl rounded-tr-none shadow-md max-w-[85%] md:max-w-[70%] order-1`
+                : `bg-white p-4 md:p-5 rounded-3xl rounded-tl-none shadow-sm border border-gray-100 markdown-body text-gray-800 max-w-[90%] md:max-w-[80%]`;
+
+            let imageHtml = imageSrc ? `<img src="${imageSrc}" class="max-w-xs md:max-w-sm h-auto rounded-xl mb-3 border-2 border-white/30 shadow-sm" alt="Ảnh bài tập">` : '';
+            
+            let contentHtml = sender === 'bot' ? marked.parse(text) : `<p class="text-base md:text-lg leading-relaxed m-0">${text.replace(/\n/g, '<br>')}</p>`;
+
+            div.innerHTML = `
+                ${avatar}
+                <div class="${bubbleClass}">
+                    ${imageHtml}
+                    ${contentHtml}
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const div = document.createElement('div');
+            div.className = `mx-auto my-4 px-5 py-2 bg-yellow-50 text-yellow-700 text-sm font-medium rounded-full border border-yellow-200 chat-bubble text-center max-w-[80%] shadow-sm`;
+            div.innerHTML = text;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showLoading() {
+            const div = document.createElement('div');
+            div.id = 'loadingIndicator';
+            div.className = `flex gap-3 md:gap-4 chat-bubble mr-auto max-w-[75%]`;
+            div.innerHTML = `
+                <div class="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gray-200 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-robot text-gray-400"></i>
+                </div>
+                <div class="bg-white p-4 md:p-5 rounded-3xl rounded-tl-none shadow-sm border border-gray-100 flex items-center gap-2 h-[60px] md:h-[72px]">
+                    <span class="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0s"></span>
+                    <span class="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.15s"></span>
+                    <span class="w-2.5 h-2.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.3s"></span>
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeLoading() {
+            const loading = document.getElementById('loadingIndicator');
+            if (loading) loading.remove();
+        }
+
+        async function fetchGeminiResponse(userText, imageBase64) {
+            if (!API_KEY) {
+                settingsPanel.classList.remove('hidden');
+                throw new Error("Phụ huynh/Giáo viên cần nhập API Key trước khi sử dụng ạ.");
+            }
+
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+            
+            const parts = [];
+            if (userText) parts.push({ text: userText });
+            
+            if (imageBase64) {
+                const mimeType = imageBase64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)[1];
+                const base64Data = imageBase64.split(',')[1];
+                parts.push({
+                    inlineData: { mimeType: mimeType, data: base64Data }
+                });
+            }
+
+            chatHistory.push({ role: "user", parts: parts });
+
+            const payload = {
+                systemInstruction: {
+                    parts: [{ text: getSystemInstruction(currentSubject) }]
+                },
+                contents: chatHistory,
+                generationConfig: {
+                    temperature: 0.6, // Vừa đủ sáng tạo nhưng vẫn chuẩn xác
+                    topP: 0.9,
+                }
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || 'Không thể kết nối với Thầy/Cô AI.');
+                }
+
+                const data = await response.json();
+                const botText = data.candidates[0].content.parts[0].text;
+                
+                chatHistory.push({ role: "model", parts: [{ text: botText }] });
+                return botText;
+
+            } catch (error) {
+                chatHistory.pop(); 
+                throw error;
+            }
+        }
+
+        async function handleSend() {
+            const text = messageInput.value.trim();
+            const currentImage = base64Image;
+
+            if (!text && !currentImage) return;
+
+            // UI Update
+            addMessage('user', text || "Kèm ảnh bài tập", currentImage);
+            messageInput.value = '';
+            messageInput.style.height = 'auto'; 
+            removeImageBtn.click(); 
+            
+            sendBtn.disabled = true;
+            messageInput.disabled = true;
+            showLoading();
+
+            try {
+                const botResponse = await fetchGeminiResponse(text, currentImage);
+                removeLoading();
+                addMessage('bot', botResponse);
+            } catch (error) {
+                removeLoading();
+                addSystemMessage(`❌ <b>Lỗi:</b> ${error.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', handleSend);
+
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+
+    </script>
+</body>
+</html>
